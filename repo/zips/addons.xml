@@ -1,0 +1,197 @@
+<?xml version='1.0' encoding='utf-8'?>
+<addons><addon id="kodirepo.xiakeng" name="Xiakeng Kodi Repository" version="1.0" provider-name="xiakeng">
+    <extension point="xbmc.addon.repository" name="Xiakeng Kodi Repository">
+        <dir>
+            <info compressed="false">https://raw.githubusercontent.com/xiakeng/kodirepo.xiakeng/master/repo/zips/addons.xml</info>
+            <checksum>https://raw.githubusercontent.com/xiakeng/kodirepo.xiakeng/master/repo/zips/addons.xml.md5</checksum>
+            <datadir zip="true">https://raw.githubusercontent.com/xiakeng/kodirepo.xiakeng/master/repo/zips/</datadir>
+        </dir>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+        <summary>Xiakeng Kodi Repository</summary>
+        <description>A repository for Kodi addons</description>
+        <disclaimer />
+        <platform>all</platform>
+        <assets>
+            <icon>icon.png</icon>
+            <fanart>fanart.jpg</fanart>
+        </assets>
+    </extension>
+</addon><addon id="plugin.video.jellyfin" name="Jellyfin" version="2.0.0+py3" provider-name="Jellyfin Contributors">
+  <requires>
+    <import addon="xbmc.python" version="3.0.0" />
+    <import addon="script.module.requests" version="2.22.0+matrix.1" />
+    <import addon="script.module.dateutil" version="2.8.1+matrix.1" />
+    <import addon="script.module.addon.signals" version="0.0.5+matrix.1" />
+    <import addon="script.module.websocket" version="1.6.4" />
+    <import addon="script.module.web-pdb" version="2.0.1" />
+  </requires>
+  <extension point="xbmc.python.pluginsource" library="default.py">
+    <provides>video audio image</provides>
+  </extension>
+  <extension point="xbmc.service" library="service.py" start="login">
+	</extension>
+  <extension point="kodi.context.item">
+    <menu id="kodi.core.main">
+      <item library="context.py">
+        <label>30401</label>
+        <visible>[!String.IsEmpty(ListItem.DBID) + !String.IsEqual(ListItem.DBID,-1) |
+					!String.IsEmpty(ListItem.Property(jellyfinid))] +
+					!String.IsEmpty(Window(10000).Property(jellyfin_context))</visible>
+      </item>
+      <item library="context_play.py">
+        <label>30402</label>
+        <visible>[[!String.IsEmpty(ListItem.DBID) + !String.IsEqual(ListItem.DBID,-1) |
+					!String.IsEmpty(ListItem.Property(jellyfinid))] + [String.IsEqual(ListItem.DBTYPE,movie) |
+					String.Contains(Container.FolderPath,livetv) |
+					String.IsEqual(ListItem.DBTYPE,episode)]] +
+					!String.IsEmpty(Window(10000).Property(jellyfin_context_transcode))</visible>
+      </item>
+    </menu>
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <platform>all</platform>
+    <language>en</language>
+    <license>GNU GENERAL PUBLIC LICENSE. Version 3, 29 June 2007</license>
+    <forum>https://forum.jellyfin.org</forum>
+    <website>https://jellyfin.org/</website>
+    <source>https://github.com/jellyfin/jellyfin-kodi</source>
+    <summary lang="en" />
+    <description lang="en">Welcome to Jellyfin for Kodi!
+A whole new way to manage and view your media library. The Jellyfin addon for Kodi combines the best of Kodi - ultra smooth navigation, beautiful UIs and playback of any file under the sun, and Jellyfin - the most powerful fully open source multi-client media metadata indexer and server.
+
+Jellyfin for Kodi is the absolute best way to enjoy the incredible Kodi playback engine combined with the power of Jellyfin's centralized database. Features:
+* Direct integration with the Kodi library for native Kodi speed
+* Instant synchronization with the Jellyfin server
+* Full support for Movie, TV and Music collections
+* Jellyfin Server direct stream and transcoding support - use Kodi when you are away from home!</description>
+    <news>v2.0.0 (2026-06-16):
+:tada: New features and improvements
+------------------------------------
++ feature: mediasegments skip (#1089) @ticoombs
+
+Bug Fixes
+---------
++ Select mp4 container when transcoding to AV1 (#1094) @kontell
++ Migrate to current auth methods (#1097) @mcarlton00
++ Don't assume Path always exists in playback objects (#1096) @mcarlton00
++ Add "Jellyfin transcode" context menu item to Live TV section (#1095) @kontell
++ fix: strm file with local file path fails to play (#1085) @VergilGao
++ Fix: Cinema mode with playlist method (#1077) @hjpaul7
++ Fix: Next Episodes (maxDaysInNextEpisodes) (#1075) @hjpaul7
+
+:white_check_mark: Tests
+------------------------
++ Fix lints and tests (#1098) @oddstr13
++ Add Python 3.14 to test matrix (#1064) @oddstr13
+
+Code or Repo Maintenance
+------------------------
++ Fix lints and tests (#1098) @oddstr13
+
+CI &amp; build changes
+------------------
++ Update burnett01/rsync-deployments action to v8 (#1078) @[renovate[bot]](https://github.com/apps/renovate)
++ Update appleboy/ssh-action action to v1.2.5 (#1074) @[renovate[bot]](https://github.com/apps/renovate)
++ Update github/codeql-action action to v4.32.2 (#1065) @[renovate[bot]](https://github.com/apps/renovate)
++ Update actions/upload-artifact action to v6 (#1081) @[renovate[bot]](https://github.com/apps/renovate)
++ Update codecov/codecov-action action to v5.5.2 (#1080) @[renovate[bot]](https://github.com/apps/renovate)
++ Update actions/checkout action to v6 (#1069) @[renovate[bot]](https://github.com/apps/renovate)
++ Update actions/setup-python action to v6.2.0 (#1071) @[renovate[bot]](https://github.com/apps/renovate)
++ Update release-drafter/release-drafter action to v6.2.0 (#1092) @[renovate[bot]](https://github.com/apps/renovate)
++ Update dependency python to 3.14 (#1049) @[renovate[bot]](https://github.com/apps/renovate)
++ Update github/codeql-action action to v4.31.2 (#1052) @[renovate[bot]](https://github.com/apps/renovate)
++ Update actions/upload-artifact action to v5 (#1059) @[renovate[bot]](https://github.com/apps/renovate)
++ Update appleboy/ssh-action action to v1.2.3 (#1062) @[renovate[bot]](https://github.com/apps/renovate)</news>
+    <assets>
+      <icon>resources/icon.png</icon>
+      <fanart>resources/fanart.png</fanart>
+    </assets>
+  </extension>
+</addon><addon id="service.upnext" name="Up Next" version="1.1.9+matrix.1" provider-name="im85288">
+    <requires>
+        <import addon="xbmc.python" version="3.0.0" />
+        <import addon="script.module.web-pdb" version="2.0.1" />
+    </requires>
+    
+    <extension point="xbmc.python.script" library="resources/lib/script_entry.py">
+      <provides>executable</provides>
+    </extension>
+    <extension point="xbmc.service" library="resources/lib/service_entry.py" />
+    <extension point="xbmc.addon.metadata">
+        <summary lang="en_GB">Propose to play the next episode automatically</summary>
+        <description lang="en_GB">A service add-on that shows a Netflix-style notification for watching the next episode. After a few automatic iterations it asks the user if he is still there watching.
+
+A lot of existing add-ons already integrate with this service out-of-the-box.</description>
+        <summary lang="de_DE">Bietet Ihnen an, die nächste Episode automatisch wiederzugeben</summary>
+        <description lang="de_DE">Ein kleines Hilfs-Add-on, welches eine Netflix-artige Benachrichtigung zur Wiedergabe der nächsten Episode anzeigt. Nach ein paar automatischen Iterationen fragt es den Anwender, ob er sie immer noch anschaut.
+
+Viele existierende Add-ons haben diesen Dienst bereits von Haus aus integriert.</description>
+        <summary lang="it_IT">Propone di riprodurre automaticamente il prossimo episodio</summary>
+        <description lang="it_IT">Un add-on di servizio che mostra una notifica in stile Netflix per guardare il prossimo episodio. Dopo alcune iterazioni automatiche, chiede all'utente se è ancora lì a guardare.
+
+Molti add-on esistenti hanno già integrato questo servizio.</description>
+        <summary lang="el_GR">Προτάση για αναπαραγωγή του επόμενου επεισοδίου αυτόματα</summary>
+        <description lang="el_GR">Ένα υπηρεσιακό πρόσθετο που δείχνει σε στύλ ειδοποίησης τύπου Νέτφλιξ για την αναπαραγωγή του επόμενου επεισοδίου. Μετά από μερικές αυτόματες εκτελέσεις, ρωτάει τον χρήστη εάν παρακολουθεί ακόμα.
+
+Πολλά από τα υπάρχοντα πρόσθετα ενσωματώνουν την λειτουργία αυτού του υπηρεσιακού προσθέτου εξ'ορισμού.</description>
+        <summary lang="sv_SE">Låter dig spela upp nästa avsnitt automatiskt</summary>
+        <description lang="sv_SE">Ett tillägg som visar en Netflix-liknande avisering för att se nästa avsnitt. Efter att några avsnitt automatiskt spelats upp frågar den användaren om han fortfarande är där och vill titta vidare.
+
+Många befintliga tillägg integreras redan med den här utanför lådan-tjänsten.</description>
+         <summary lang="ru_RU">Предлагает автоматически проиграть следующую серию</summary>
+        <description lang="ru_RU">Сервисное дополнение, которое показывает уведомление в стиле Netflix для просмотра следующей серии. После нескольких автоматических итераций спрашивает пользователя, он еще смотрит или нет.
+
+Многие существующие дополнения уже интегрированы с этим сервисом "из коробки".</description>
+        <summary lang="es_ES">Sugiere reproducir el próximo episodio automáticamente</summary>
+        <description lang="es_ES">Un complemento de servicio que muestra una notificación al estilo Netflix para ver el próximo episodio. Después de algunas iteraciones automáticas, le pregunta al usuario si todavía está allí mirando.
+
+            Muchos complementos existentes ya se integran con este servicio listo para usar.</description>
+        <platform>all</platform>
+        <license>GPL-2.0-only</license>
+        <news>
+v1.1.8 (2022-09-13)
+- Never ask if Still Watching? if playedInARow is 0
+- Still Watching? checks number of plays not number+1
+
+v1.1.7 (2022-09-03)
+- Update check for filename of multi-part episodes
+- Check for physical disc or disc image being played
+- Translation update to Russian
+- Fix CI workflow
+
+v1.1.6 (2022-03-07)
+- Fix for missing mediatype video info with addon video content
+- Translation updates to Croatian, Japanese, Korean, Swedish and Finnish
+- New translation for Taiwanese Mandarin
+- Use onAVStarted instead of onPlayBackStarted
+- Fix for Kodi not using the video player/playlist to play videos
+- Fixes misalignment of system.time and endtime
+
+v1.1.5 (2021-02-21)
+- Fix playlists to work with non-library content
+- Fix to prevent unwanted playback when using playlist queueing method
+- New translation for Finnish
+
+v1.1.4 (2020-12-03)
+- Fix problem causing pop-up to not appear
+- Translation updates to Romanian, Russian and Spanish
+
+v1.1.3 (2020-10-14)
+- Enable customPlayTime by default
+- Do not seek to the end before playing next episode
+- Add Kodi v17 compatibility
+- Fix logging on Kodi v19 (Matrix) after recent breakage
+- Enqueue the next episode in the playlist
+- Translation updates to German
+        </news>
+        <assets>
+            <icon>resources/media/icon.png</icon>
+            <fanart>resources/media/fanart.jpg</fanart>
+            <screenshot>resources/media/screenshot01.jpg</screenshot>
+            <screenshot>resources/media/screenshot02.jpg</screenshot>
+            <screenshot>resources/media/upnext-settings.jpg</screenshot>
+            <screenshot>resources/media/upnext-developer.jpg</screenshot>
+        </assets>
+    </extension>
+</addon></addons>

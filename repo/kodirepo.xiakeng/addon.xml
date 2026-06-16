@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="kodirepo.xiakeng" name="Xiakeng Kodi Repository" version="1.0" provider-name="xiakeng">
+    <extension point="xbmc.addon.repository" name="Xiakeng Kodi Repository">
+        <dir>
+            <info compressed="false">https://raw.githubusercontent.com/xiakeng/kodirepo.xiakeng/master/repo/zips/addons.xml</info>
+            <checksum>https://raw.githubusercontent.com/xiakeng/kodirepo.xiakeng/master/repo/zips/addons.xml.md5</checksum>
+            <datadir zip="true">https://raw.githubusercontent.com/xiakeng/kodirepo.xiakeng/master/repo/zips/</datadir>
+        </dir>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+        <summary>Xiakeng Kodi Repository</summary>
+        <description>A repository for Kodi addons</description>
+        <disclaimer></disclaimer>
+        <platform>all</platform>
+        <assets>
+            <icon>icon.png</icon>
+            <fanart>fanart.jpg</fanart>
+        </assets>
+    </extension>
+</addon>

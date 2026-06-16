@@ -1,0 +1,6 @@
+[submodule "repo/service.upnext"]
+	path = repo/service.upnext
+	url = https://github.com/xiakeng/service.upnext.git
+[submodule "repo/jellyfin-kodi"]
+	path = repo/jellyfin-kodi
+	url = https://github.com/xiakeng/jellyfin-kodi.git
