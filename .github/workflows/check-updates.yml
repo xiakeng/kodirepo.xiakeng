@@ -65,40 +65,52 @@ jobs:
           git stash push -m "plugin-update-stash"
           echo "Changes stashed."
 
-          # ── Step 5: Create or update issues (one per addon) ─────────────
-          ISSUE_REFS=""
+          # ── Step 5: Create or update a single issue covering all updates ─
+          # Check for an existing open plugin-update issue
+          EXISTING_ISSUE=$(gh issue list --label "plugin-update" --state open --json number --jq '.[0].number // empty' || true)
+
+          # Build issue body listing all updates
+          ISSUE_BODY="New plugin version(s) detected:
+
+          | Addon | Repository | Previous | New |
+          |-------|-----------|----------|-----|"
           for i in $(seq 0 $((NUM_UPDATES - 1))); do
             ADDON_ID=$(echo "$UPDATES_JSON" | jq -r ".[$i].addon_id")
             OLD_VER=$(echo "$UPDATES_JSON" | jq -r ".[$i].old_version")
             NEW_VER=$(echo "$UPDATES_JSON" | jq -r ".[$i].new_version")
             REPO_NAME=$(echo "$UPDATES_JSON" | jq -r ".[$i].repo")
-            EXISTING_ISSUE=$(echo "$UPDATES_JSON" | jq -r ".[$i].existing_issue // empty")
-
-            if [ -z "$EXISTING_ISSUE" ]; then
-              ISSUE_NUMBER=$(gh issue create \
-                --title "Plugin update: $ADDON_ID v$NEW_VER" \
-                --body "A new version of **$ADDON_ID** has been detected.
-
-          - **Repository**: https://github.com/$REPO_NAME
-          - **Previous version**: \`$OLD_VER\`
-          - **New version**: \`$NEW_VER\`
-
-          This issue will be automatically closed when the update PR is merged." \
-                --label "plugin-update")
-              echo "Created issue #$ISSUE_NUMBER for $ADDON_ID"
-            else
-              ISSUE_NUMBER="$EXISTING_ISSUE"
-              gh issue comment "$ISSUE_NUMBER" \
-                --body "Version update re-detected: **$ADDON_ID** \`$OLD_VER\` -> \`$NEW_VER\`
-
-          Updating the existing branch and PR."
-              echo "Reusing existing issue #$ISSUE_NUMBER for $ADDON_ID"
-            fi
-
-            # Accumulate "Closes #N" references for the PR body
-            ISSUE_REFS="${ISSUE_REFS}Closes #${ISSUE_NUMBER}
-          "
+            ISSUE_BODY="${ISSUE_BODY}
+          | \`${ADDON_ID}\` | [${REPO_NAME}](https://github.com/${REPO_NAME}) | \`${OLD_VER}\` | \`${NEW_VER}\` |"
           done
+          ISSUE_BODY="${ISSUE_BODY}
+
+          This issue will be automatically closed when the update PR is merged."
+
+          if [ -z "$EXISTING_ISSUE" ]; then
+            # Build title listing all addon updates
+            ISSUE_TITLE="Plugin update:"
+            for i in $(seq 0 $((NUM_UPDATES - 1))); do
+              ADDON_ID=$(echo "$UPDATES_JSON" | jq -r ".[$i].addon_id")
+              NEW_VER=$(echo "$UPDATES_JSON" | jq -r ".[$i].new_version")
+              ISSUE_TITLE="${ISSUE_TITLE} ${ADDON_ID} v${NEW_VER},"
+            done
+            ISSUE_TITLE="${ISSUE_TITLE%,}"  # remove trailing comma
+
+            ISSUE_URL=$(gh issue create \
+              --title "$ISSUE_TITLE" \
+              --body "$ISSUE_BODY" \
+              --label "plugin-update")
+            ISSUE_NUMBER=$(basename "$ISSUE_URL")
+            echo "Created issue #$ISSUE_NUMBER"
+          else
+            ISSUE_NUMBER="$EXISTING_ISSUE"
+            gh issue edit "$ISSUE_NUMBER" --body "$ISSUE_BODY"
+            gh issue comment "$ISSUE_NUMBER" \
+              --body "Version update re-detected. Updating the existing branch and PR."
+            echo "Reusing existing issue #$ISSUE_NUMBER"
+          fi
+
+          ISSUE_REFS="Closes #${ISSUE_NUMBER}"
 
           # ── Step 6: Create or checkout a single update branch ────────────
           BRANCH_NAME="plugin-update"
