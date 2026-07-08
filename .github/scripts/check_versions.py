@@ -52,7 +52,7 @@ def parse_gitmodules():
 
         # Derive 'owner/repo' from the URL
         # Handles https://github.com/owner/repo.git and git@github.com:owner/repo.git
-        repo_match = re.search(r"github\.com[:/]([^/]+/[^/.]+?)(?:\.git)?$", url)
+        repo_match = re.search(r"github\.com[:/](.+?)(?:\.git)?$", url)
         repo_slug = repo_match.group(1) if repo_match else name
 
         submodules.append({"path": path, "repo": repo_slug})
