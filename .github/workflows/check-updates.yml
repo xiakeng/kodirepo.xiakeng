@@ -1,0 +1,176 @@
+name: Check Plugin Updates
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  check-and-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Configure git safe directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Fetch latest submodule commits
+        run: |
+          set -e
+          # Iterate over all submodules declared in .gitmodules
+          git submodule foreach 'git fetch origin master && git checkout FETCH_HEAD'
+
+      - name: Check versions
+        id: check
+        run: python3 .github/scripts/check_versions.py
+
+      - name: Process updates
+        if: steps.check.outputs.updates_needed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          UPDATES_JSON='${{ steps.check.outputs.updates_json }}'
+          NUM_UPDATES=$(echo "$UPDATES_JSON" | jq 'length')
+          echo "Processing $NUM_UPDATES update(s)..."
+
+          # ── Step 1: Ensure the 'plugin-update' label exists ──────────────
+          if ! gh label list --limit 100 --json name --jq '.[].name' | grep -qxF "plugin-update"; then
+            gh label create "plugin-update" \
+              --description "Automated plugin version update" \
+              --color "0e8a16" || true
+          fi
+
+          # ── Step 2: Update all submodules to latest ───────────────────────
+          git submodule update --remote --merge
+          echo "Submodules updated."
+
+          # ── Step 3: Run the repo generator ────────────────────────────────
+          python3 _repo_generator.py
+          echo "Repo generator completed."
+
+          # ── Step 4: Stash all changes (we'll apply per branch) ────────────
+          git stash push -m "plugin-update-stash"
+          echo "Changes stashed."
+
+          # ── Step 5: Create or update issues (one per addon) ─────────────
+          ISSUE_REFS=""
+          for i in $(seq 0 $((NUM_UPDATES - 1))); do
+            ADDON_ID=$(echo "$UPDATES_JSON" | jq -r ".[$i].addon_id")
+            OLD_VER=$(echo "$UPDATES_JSON" | jq -r ".[$i].old_version")
+            NEW_VER=$(echo "$UPDATES_JSON" | jq -r ".[$i].new_version")
+            REPO_NAME=$(echo "$UPDATES_JSON" | jq -r ".[$i].repo")
+            EXISTING_ISSUE=$(echo "$UPDATES_JSON" | jq -r ".[$i].existing_issue // empty")
+
+            if [ -z "$EXISTING_ISSUE" ]; then
+              ISSUE_NUMBER=$(gh issue create \
+                --title "Plugin update: $ADDON_ID v$NEW_VER" \
+                --body "A new version of **$ADDON_ID** has been detected.
+
+          - **Repository**: https://github.com/$REPO_NAME
+          - **Previous version**: \`$OLD_VER\`
+          - **New version**: \`$NEW_VER\`
+
+          This issue will be automatically closed when the update PR is merged." \
+                --label "plugin-update")
+              echo "Created issue #$ISSUE_NUMBER for $ADDON_ID"
+            else
+              ISSUE_NUMBER="$EXISTING_ISSUE"
+              gh issue comment "$ISSUE_NUMBER" \
+                --body "Version update re-detected: **$ADDON_ID** \`$OLD_VER\` -> \`$NEW_VER\`
+
+          Updating the existing branch and PR."
+              echo "Reusing existing issue #$ISSUE_NUMBER for $ADDON_ID"
+            fi
+
+            # Accumulate "Closes #N" references for the PR body
+            ISSUE_REFS="${ISSUE_REFS}Closes #${ISSUE_NUMBER}
+          "
+          done
+
+          # ── Step 6: Create or checkout a single update branch ────────────
+          BRANCH_NAME="plugin-update"
+          if git ls-remote --exit-code --heads origin "$BRANCH_NAME" >/dev/null 2>&1; then
+            git fetch origin "$BRANCH_NAME"
+            git checkout -B "$BRANCH_NAME" "origin/$BRANCH_NAME"
+            git merge origin/master --no-edit || true
+            echo "Checked out existing branch: $BRANCH_NAME"
+          else
+            git checkout -b "$BRANCH_NAME" master
+            echo "Created new branch: $BRANCH_NAME"
+          fi
+
+          # ── Step 7: Apply stashed changes and commit ─────────────────────
+          git stash pop
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+
+          # Build a descriptive commit message listing all updates
+          COMMIT_MSG="Update plugin versions
+
+          Automated plugin update."
+          for i in $(seq 0 $((NUM_UPDATES - 1))); do
+            ADDON_ID=$(echo "$UPDATES_JSON" | jq -r ".[$i].addon_id")
+            NEW_VER=$(echo "$UPDATES_JSON" | jq -r ".[$i].new_version")
+            COMMIT_MSG="${COMMIT_MSG}
+          - ${ADDON_ID} -> v${NEW_VER}"
+          done
+
+          git commit -m "$COMMIT_MSG" || echo "Nothing to commit (changes already present)."
+          git push origin "$BRANCH_NAME" --force-with-lease
+          echo "Pushed branch: $BRANCH_NAME"
+
+          # ── Step 8: Create or update the pull request ────────────────────
+          EXISTING_PR=$(gh pr list \
+            --head "$BRANCH_NAME" \
+            --base master \
+            --state open \
+            --json number \
+            --jq '.[0].number // empty' || true)
+
+          # Build PR body with a table of all updates + issue close references
+          PR_BODY="## Automated Plugin Update
+
+          | Addon | Repository | Previous | New |
+          |-------|-----------|----------|-----|"
+          for i in $(seq 0 $((NUM_UPDATES - 1))); do
+            ADDON_ID=$(echo "$UPDATES_JSON" | jq -r ".[$i].addon_id")
+            OLD_VER=$(echo "$UPDATES_JSON" | jq -r ".[$i].old_version")
+            NEW_VER=$(echo "$UPDATES_JSON" | jq -r ".[$i].new_version")
+            REPO_NAME=$(echo "$UPDATES_JSON" | jq -r ".[$i].repo")
+            PR_BODY="${PR_BODY}
+          | \`${ADDON_ID}\` | [${REPO_NAME}](https://github.com/${REPO_NAME}) | \`${OLD_VER}\` | \`${NEW_VER}\` |"
+          done
+          PR_BODY="${PR_BODY}
+
+          ${ISSUE_REFS}
+          ---
+          This PR was created automatically by a GitHub Actions workflow.
+          Please review the changes before merging."
+
+          if [ -z "$EXISTING_PR" ]; then
+            gh pr create \
+              --title "Automated plugin update" \
+              --body "$PR_BODY" \
+              --base master
+            echo "Created PR for branch: $BRANCH_NAME"
+          else
+            gh pr edit "$EXISTING_PR" \
+              --title "Automated plugin update" \
+              --body "$PR_BODY"
+            echo "Updated existing PR #$EXISTING_PR"
+          fi
+
+          echo ""
+          echo "All updates processed successfully."
