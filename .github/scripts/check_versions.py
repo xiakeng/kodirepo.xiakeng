@@ -106,22 +106,23 @@ def get_open_issues():
         print("Warning: GITHUB_REPOSITORY not set", file=sys.stderr)
         return []
     try:
+        # Use REST API query params for filtering; avoids gh exit code 4 on empty results
         result = subprocess.run(
             [
                 "gh",
                 "api",
-                f"/repos/{repo}/issues",
-                "-q",
-                f'.[] | select(.labels[]?.name == "{LABEL}") | select(.state == "open") | '
-                '{number: .number, title: .title, body: (.body // "")}',
-                "--paginate",
+                f"/repos/{repo}/issues?labels={LABEL}&state=open&per_page=100",
+                "--jq",
+                ".[] | {number: .number, title: .title, body: (.body // \"\")}",
             ],
             capture_output=True,
             text=True,
-            check=True,
         )
+        # gh returns exit 0 on success, non-zero on API errors
+        if result.returncode != 0:
+            print(f"Warning: gh api failed: {result.stderr.strip()}", file=sys.stderr)
+            return []
         issues = []
-        # gh --paginate outputs one JSON object per line
         for line in result.stdout.strip().splitlines():
             line = line.strip()
             if line:
