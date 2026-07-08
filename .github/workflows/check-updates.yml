@@ -31,6 +31,8 @@ jobs:
 
       - name: Check versions
         id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python3 .github/scripts/check_versions.py
 
       - name: Process updates
