@@ -53,17 +53,25 @@ jobs:
               --color "0e8a16" || true
           fi
 
-          # ── Step 2: Update all submodules to latest ───────────────────────
+          # ── Step 2: Create or checkout the update branch ────────────────
+          BRANCH_NAME="plugin-update"
+          if git ls-remote --exit-code --heads origin "$BRANCH_NAME" >/dev/null 2>&1; then
+            git fetch origin "$BRANCH_NAME"
+            git checkout -B "$BRANCH_NAME" "origin/$BRANCH_NAME"
+            git merge origin/master --no-edit || true
+            echo "Checked out existing branch: $BRANCH_NAME"
+          else
+            git checkout -b "$BRANCH_NAME" master
+            echo "Created new branch: $BRANCH_NAME"
+          fi
+
+          # ── Step 3: Update all submodules to latest ───────────────────────
           git submodule update --remote --merge
           echo "Submodules updated."
 
-          # ── Step 3: Run the repo generator ────────────────────────────────
+          # ── Step 4: Run the repo generator ────────────────────────────────
           python3 _repo_generator.py
           echo "Repo generator completed."
-
-          # ── Step 4: Stash all changes (we'll apply per branch) ────────────
-          git stash push -m "plugin-update-stash"
-          echo "Changes stashed."
 
           # ── Step 5: Create or update a single issue covering all updates ─
           # Check for an existing open plugin-update issue
@@ -112,20 +120,7 @@ jobs:
 
           ISSUE_REFS="Closes #${ISSUE_NUMBER}"
 
-          # ── Step 6: Create or checkout a single update branch ────────────
-          BRANCH_NAME="plugin-update"
-          if git ls-remote --exit-code --heads origin "$BRANCH_NAME" >/dev/null 2>&1; then
-            git fetch origin "$BRANCH_NAME"
-            git checkout -B "$BRANCH_NAME" "origin/$BRANCH_NAME"
-            git merge origin/master --no-edit || true
-            echo "Checked out existing branch: $BRANCH_NAME"
-          else
-            git checkout -b "$BRANCH_NAME" master
-            echo "Created new branch: $BRANCH_NAME"
-          fi
-
-          # ── Step 7: Apply stashed changes and commit ─────────────────────
-          git stash pop
+          # ── Step 7: Commit and push ─────────────────────────────────────
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
